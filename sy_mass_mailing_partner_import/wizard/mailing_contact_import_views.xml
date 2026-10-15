@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- Copyright 2026 Ángel Rivas <angel.rivas@sygel.es>
+     License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl). -->
+<odoo>
+    <record id="mailing_contact_import_view_form_inherit_partner" model="ir.ui.view">
+        <field name="name">mailing.contact.import.form.inherit.partner</field>
+        <field name="model">mailing.contact.import</field>
+        <field name="inherit_id" ref="mass_mailing.mailing_contact_import_view_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='mailing_list_ids']" position="after">
+                <field name="import_type" widget="radio" />
+                <field
+                    name="partner_domain"
+                    widget="domain"
+                    options="{'model': 'res.partner'}"
+                    invisible="import_type != 'partner'"
+                />
+            </xpath>
+            <xpath expr="//field[@name='contact_list']" position="attributes">
+                <attribute name="invisible">import_type == 'partner'</attribute>
+            </xpath>
+            <xpath expr="//label[@for='contact_list']" position="attributes">
+                <attribute name="invisible">import_type == 'partner'</attribute>
+            </xpath>
+            <xpath
+                expr="//p[button[@name='action_open_base_import']]"
+                position="attributes"
+            >
+                <attribute name="invisible">import_type == 'partner'</attribute>
+            </xpath>
+            <xpath
+                expr="//field[@name='contact_list']/preceding-sibling::p"
+                position="attributes"
+            >
+                <attribute name="invisible">import_type == 'partner'</attribute>
+            </xpath>
+        </field>
+    </record>
+</odoo>

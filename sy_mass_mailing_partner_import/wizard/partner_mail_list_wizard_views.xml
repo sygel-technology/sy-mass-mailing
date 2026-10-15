@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- Copyright 2026 Ángel Rivas <angel.rivas@sygel.es>
+     License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl). -->
+<odoo>
+    <record id="partner_mail_list_wizard_view_form" model="ir.ui.view">
+        <field name="name">partner.mail.list.wizard.form</field>
+        <field name="model">partner.mail.list.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Add to Mailing Lists">
+                <group>
+                    <field name="partner_ids" widget="many2many_tags" readonly="1" />
+                    <field name="mailing_list_ids" widget="many2many_tags" />
+                </group>
+                <footer>
+                    <button
+                        name="action_add_to_mailing_lists"
+                        string="Add to Mailing Lists"
+                        type="object"
+                        class="btn-primary"
+                    />
+                    <button string="Cancel" special="cancel" class="btn-secondary" />
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="action_partner_mail_list_wizard" model="ir.actions.act_window">
+        <field name="name">Add to Mailing Lists</field>
+        <field name="res_model">partner.mail.list.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="partner_mail_list_wizard_view_form" />
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="base.model_res_partner" />
+        <field name="binding_view_types">list</field>
+    </record>
+</odoo>
