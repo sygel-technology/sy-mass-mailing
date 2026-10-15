@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- Copyright 2026 Ángel Rivas <angel.rivas@sygel.es>
+     License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl). -->
+<odoo>
+    <record id="mailing_contact_view_form_inherit_partner" model="ir.ui.view">
+        <field name="name">mailing.contact.form.inherit.partner</field>
+        <field name="model">mailing.contact</field>
+        <field name="inherit_id" ref="mass_mailing.mailing_contact_view_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='email_details']" position="before">
+                <field name="partner_id" />
+                <field name="partner_ref" readonly="1" />
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,5 @@
+# License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
+
+from . import partner_mail_list_wizard
+from . import mailing_contact_import
+from . import partner_merge
