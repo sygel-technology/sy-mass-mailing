@@ -1,0 +1,11 @@
+[project]
+name = "odoo-addons-sygel-technology-sy-mass-mailing"
+version = "18.0.20261020.0"
+dependencies = [
+    "odoo-addon-sy_mass_mailing_partner_import==18.0.*",
+]
+classifiers=[
+    "Programming Language :: Python",
+    "Framework :: Odoo",
+    "Framework :: Odoo :: 18.0",
+]
