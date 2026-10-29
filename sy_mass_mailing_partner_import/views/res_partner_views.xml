@@ -22,6 +22,16 @@
                     />
                 </button>
             </xpath>
+            <xpath expr="//field[@name='email']" position="before">
+                <button
+                    name="mail_blacklist_add"
+                    class="fa fa-plus text-success"
+                    title="Click to add this email to the blacklist."
+                    type="object"
+                    groups="base.group_user"
+                    invisible="is_blacklisted"
+                />
+            </xpath>
         </field>
     </record>
 </odoo>

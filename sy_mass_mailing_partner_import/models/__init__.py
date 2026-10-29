@@ -3,3 +3,4 @@
 from . import mailing_contact
 from . import res_partner
 from . import res_config_settings
+from . import mail_blacklist

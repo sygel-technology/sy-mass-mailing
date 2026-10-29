@@ -16,6 +16,16 @@ class ResPartner(models.Model):
         compute="_compute_mailing_contact_count",
         store=True,
     )
+    is_blacklisted = fields.Boolean(
+        inverse="_inverse_is_blacklisted",
+    )
+
+    def _inverse_is_blacklisted(self):
+        # Add or remove the partner's email from the global mailing blacklist.
+        blacklist = self.env["mail.blacklist"]
+        for partner in self.filtered("email_normalized"):
+            method = blacklist._add if partner.is_blacklisted else blacklist._remove
+            method(partner.email_normalized)
 
     @api.depends("mailing_contact_ids")
     def _compute_mailing_contact_count(self):
@@ -71,3 +81,6 @@ class ResPartner(models.Model):
                 )
                 subscription_count += len(lists_to_add)
         return created_count, subscription_count
+
+    def mail_blacklist_add(self):
+        self.write({"is_blacklisted": True})
