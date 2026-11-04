@@ -3,7 +3,7 @@
 {
     "name": "Mass Mailing Partner Import",
     "summary": "Imports partners from mass mailing lists",
-    "version": "18.0.1.0.0",
+    "version": "18.0.1.1.0",
     "category": "Marketing",
     "website": "https://github.com/sygel-technology/sy-mass-mailing",
     "author": "Sygel",

@@ -21,7 +21,7 @@ Available addons
 ----------------
 addon | version | maintainers | summary
 --- | --- | --- | ---
-[sy_mass_mailing_partner_import](sy_mass_mailing_partner_import/) | 18.0.1.0.0 |  | Imports partners from mass mailing lists
+[sy_mass_mailing_partner_import](sy_mass_mailing_partner_import/) | 18.0.1.1.0 |  | Imports partners from mass mailing lists
 
 [//]: # (end addons)
 
