@@ -34,6 +34,18 @@ class TestMassMailingPartnerImport(TransactionCase):
         cls.mailing_list_2 = cls.env["mailing.list"].create(
             {"name": "Test Mailing List 2"}
         )
+        cls.partner_same_email = cls.env["res.partner"].create(
+            {
+                "name": "Partner Same Email",
+                "email": cls.partner.email,
+            }
+        )
+        cls.partner_other_email = cls.env["res.partner"].create(
+            {
+                "name": "Partner Other Email",
+                "email": "other@example.com",
+            }
+        )
 
     def test_mailing_contact_partner(self):
         self.assertEqual(self.mailing_contact.partner_id, self.partner)
@@ -260,3 +272,195 @@ class TestMassMailingPartnerImport(TransactionCase):
         )
         wizard = self.env["mailing.contact.import"].create({})
         self.assertEqual(wizard.import_type, "email")
+
+    def test_partner_blacklist_add(self):
+        self.assertFalse(self.partner.is_blacklisted)
+        self.partner.mail_blacklist_add()
+        blacklist = self.env["mail.blacklist"].search(
+            [("email", "=", self.partner.email_normalized)]
+        )
+        self.assertTrue(blacklist)
+        self.assertTrue(blacklist.active)
+        self.assertTrue(self.partner.is_blacklisted)
+        self.assertTrue(self.mailing_contact.is_blacklisted)
+
+    def test_partner_blacklist_remove(self):
+        self.partner.is_blacklisted = True
+        self.partner.is_blacklisted = False
+        blacklist = (
+            self.env["mail.blacklist"]
+            .with_context(active_test=False)
+            .search([("email", "=", self.partner.email_normalized)])
+        )
+        self.assertTrue(blacklist)
+        self.assertFalse(blacklist.active)
+        self.partner.invalidate_recordset(["is_blacklisted"])
+        self.mailing_contact.invalidate_recordset(["is_blacklisted"])
+        self.assertFalse(self.partner.is_blacklisted)
+        self.assertFalse(self.mailing_contact.is_blacklisted)
+
+    def test_partner_blacklist_opt_out(self):
+        self.partner._add_to_mailing_lists(self.mailing_list_1)
+        subscription = self.mailing_contact.subscription_ids
+        self.assertFalse(subscription.opt_out)
+        self.partner.is_blacklisted = True
+        self.assertTrue(self.partner.is_blacklisted)
+        self.assertTrue(subscription.opt_out)
+        self.partner.is_blacklisted = False
+        self.assertFalse(self.partner.is_blacklisted)
+        self.assertFalse(subscription.opt_out)
+
+    def test_partner_blacklist_multiple_lists(self):
+        self.partner._add_to_mailing_lists(self.mailing_list_1 | self.mailing_list_2)
+        subscriptions = self.mailing_contact.subscription_ids
+        subscription_2 = subscriptions.filtered(
+            lambda sub: sub.list_id == self.mailing_list_2
+        )
+        subscription_2.opt_out = True
+        self.partner.is_blacklisted = True
+        self.assertTrue(self.partner.is_blacklisted)
+        self.assertTrue(all(subscriptions.mapped("opt_out")))
+        self.partner.is_blacklisted = False
+        self.assertFalse(self.partner.is_blacklisted)
+        self.assertFalse(any(subscriptions.mapped("opt_out")))
+        self.assertEqual(
+            self.mailing_contact.list_ids,
+            self.mailing_list_1 | self.mailing_list_2,
+        )
+
+    def test_blacklist_create_active(self):
+        self.partner._add_to_mailing_lists(self.mailing_list_1)
+        subscription = self.mailing_contact.subscription_ids
+        blacklist = self.env["mail.blacklist"].create({"email": self.partner.email})
+        self.assertTrue(blacklist.active)
+        self.assertTrue(subscription.opt_out)
+
+    def test_blacklist_create_inactive(self):
+        self.partner._add_to_mailing_lists(self.mailing_list_1)
+        subscription = self.mailing_contact.subscription_ids
+        blacklist = self.env["mail.blacklist"].create(
+            {
+                "email": self.partner.email,
+                "active": False,
+            }
+        )
+        self.assertFalse(blacklist.active)
+        self.assertFalse(subscription.opt_out)
+
+    def test_blacklist_archive_unarchive(self):
+        self.partner._add_to_mailing_lists(self.mailing_list_1)
+        subscription = self.mailing_contact.subscription_ids
+        blacklist = self.env["mail.blacklist"].create({"email": self.partner.email})
+        self.assertTrue(subscription.opt_out)
+        blacklist.action_archive()
+        self.assertFalse(blacklist.active)
+        self.assertFalse(subscription.opt_out)
+        blacklist.action_unarchive()
+        self.assertTrue(blacklist.active)
+        self.assertTrue(subscription.opt_out)
+
+    def test_blacklist_unlink(self):
+        self.partner._add_to_mailing_lists(self.mailing_list_1)
+        subscription = self.mailing_contact.subscription_ids
+        blacklist = self.env["mail.blacklist"].create({"email": self.partner.email})
+        self.assertTrue(subscription.opt_out)
+        blacklist.unlink()
+        self.assertFalse(subscription.opt_out)
+        self.assertFalse(
+            self.env["mail.blacklist"]
+            .with_context(active_test=False)
+            .search([("email", "=", self.partner.email_normalized)])
+        )
+
+    def test_blacklist_remove_wizard(self):
+        self.partner._add_to_mailing_lists(self.mailing_list_1)
+        subscription = self.mailing_contact.subscription_ids
+        self.partner.mail_blacklist_add()
+        self.assertTrue(subscription.opt_out)
+        wizard = self.env["mail.blacklist.remove"].create(
+            {
+                "email": self.partner.email,
+                "reason": "Test unblacklist",
+            }
+        )
+        wizard.action_unblacklist_apply()
+        self.assertFalse(subscription.opt_out)
+        self.partner.invalidate_recordset(["is_blacklisted"])
+        self.assertFalse(self.partner.is_blacklisted)
+
+    def test_blacklist_write_without_active_change(self):
+        self.partner._add_to_mailing_lists(self.mailing_list_1)
+        subscription = self.mailing_contact.subscription_ids
+        subscription.opt_out = True
+        blacklist = self.env["mail.blacklist"].create(
+            {
+                "email": self.partner.email,
+                "active": False,
+            }
+        )
+        blacklist.write({"active": False})
+        self.assertTrue(subscription.opt_out)
+
+    def test_blacklist_mass_write(self):
+        self.partner._add_to_mailing_lists(self.mailing_list_1)
+        self.partner_other_email._add_to_mailing_lists(self.mailing_list_2)
+        subscriptions = (
+            self.partner.mailing_contact_ids.subscription_ids
+            | self.partner_other_email.mailing_contact_ids.subscription_ids
+        )
+        blacklist = self.env["mail.blacklist"].create(
+            [
+                {"email": self.partner.email, "active": False},
+                {"email": self.partner_other_email.email, "active": False},
+            ]
+        )
+        blacklist.write({"active": True})
+        self.assertTrue(all(subscriptions.mapped("opt_out")))
+        blacklist.write({"active": False})
+        self.assertFalse(any(subscriptions.mapped("opt_out")))
+
+    def test_partner_blacklist_multiple_partners(self):
+        same_contact = self.env["mailing.contact"].create(
+            {
+                "name": self.partner_same_email.name,
+                "email": self.partner_same_email.email,
+                "partner_id": self.partner_same_email.id,
+            }
+        )
+        other_contact = self.env["mailing.contact"].create(
+            {
+                "name": self.partner_other_email.name,
+                "email": self.partner_other_email.email,
+                "partner_id": self.partner_other_email.id,
+            }
+        )
+        same_subscription = self.env["mailing.subscription"].create(
+            {
+                "contact_id": same_contact.id,
+                "list_id": self.mailing_list_1.id,
+            }
+        )
+        other_subscription = self.env["mailing.subscription"].create(
+            {
+                "contact_id": other_contact.id,
+                "list_id": self.mailing_list_1.id,
+            }
+        )
+        self.assertFalse(same_subscription.opt_out)
+        self.assertFalse(other_subscription.opt_out)
+        self.partner.mail_blacklist_add()
+        self.partner_same_email.invalidate_recordset(["is_blacklisted"])
+        self.partner_other_email.invalidate_recordset(["is_blacklisted"])
+        self.assertTrue(self.partner.is_blacklisted)
+        self.assertTrue(self.partner_same_email.is_blacklisted)
+        self.assertFalse(self.partner_other_email.is_blacklisted)
+        self.assertTrue(same_subscription.opt_out)
+        self.assertFalse(other_subscription.opt_out)
+        self.partner.is_blacklisted = False
+        self.partner_same_email.invalidate_recordset(["is_blacklisted"])
+        self.partner_other_email.invalidate_recordset(["is_blacklisted"])
+        self.assertFalse(self.partner.is_blacklisted)
+        self.assertFalse(self.partner_same_email.is_blacklisted)
+        self.assertFalse(self.partner_other_email.is_blacklisted)
+        self.assertFalse(same_subscription.opt_out)
+        self.assertFalse(other_subscription.opt_out)
